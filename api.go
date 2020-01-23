@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
+	"encoding/json"
 
 	"github.com/kataras/iris/v12"
 )
@@ -11,32 +9,22 @@ import (
 func main() {
 	app := iris.Default()
 	app.Get("/counting", func(ctx iris.Context) {
-		array := parseArray(ctx.URLParam("array"))
-		sorted := sort(array)
-		ctx.WriteString(arrayToString(sorted))
+		ctx.Write(parseAndSort([]byte("[" + ctx.URLParam("array") + "]")))
 	})
-
+	app.Post("/counting", func(ctx iris.Context) {
+		body, _ := ctx.GetBody()
+		ctx.Write(parseAndSort(body))
+	})
 	app.Run(iris.Addr(":80"))
 }
 
-func parseArray(array string) []int {
-	numbers := strings.Split(array, ",")
-	length := len(numbers)
-	result := make([]int, length)
-	for i := 0; i < length; i++ {
-		value, _ := strconv.Atoi(numbers[i])
-		result[i] = value
-	}
-	return result
-}
+func parseAndSort(bytes []byte) []byte {
+	var array []int
+	json.Unmarshal(bytes, &array)
 
-func arrayToString(array []int) string {
-	str := strconv.Itoa(array[0])
-	length := len(array)
-	for i := 1; i < length; i++ {
-		str += "," + strconv.Itoa(array[i])
-	}
-	return str
+	b, _ := json.Marshal(map[string][]int{"result": sort(array)})
+
+	return b
 }
 
 func sort(array []int) []int {
@@ -60,8 +48,6 @@ func sort(array []int) []int {
 		sum += counts[i]
 		counts[i] = sum
 	}
-
-	fmt.Println(arrayToString(counts))
 
 	for i := 0; i < length; i++ {
 		result[counts[array[i]]-1] = array[i]
